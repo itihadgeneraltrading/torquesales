@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Torque Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1814;min-height:100vh;}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+:root{--acc:#2d4a3e;--txt:#1a1814;--mut:#7a7870;--surf:#ffffff;--surf2:#f5f4f0;--bdr:#e8e6e0;--r:12px;--rs:8px;--grn:#186a30;--grn-l:#e8f5e8;--blu:#1a56db;--blu-l:#e8f0fb;--cor:#c84b2f;--cor-l:#fde8e4;--amb:#b5820a;--amb-l:#fef3cd;--red:#c84b2f;--red-l:#fde8e4;--pur:#6d4c9e;--pur-l:#f0ebf8;}
+.pin-gate{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem;}
+.pin-box{background:#fff;border-radius:20px;padding:2rem 1.5rem;width:100%;max-width:340px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.logo{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--acc);margin-bottom:20px;}
+.pin-title{font-size:20px;font-weight:700;color:var(--txt);margin-bottom:6px;}
+.pin-sub{font-size:13px;color:var(--mut);margin-bottom:24px;}
+.pin-input{width:100%;padding:14px;font-size:24px;letter-spacing:10px;text-align:center;border:2px solid var(--bdr);border-radius:12px;background:var(--surf2);margin-bottom:12px;font-family:'Space Mono',monospace;outline:none;}
+.pin-input:focus{border-color:var(--acc);}
+.pin-btn{width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:12px;border:none;background:var(--acc);color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.pin-err{font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px;}
+#adminApp{display:none;}
+.hdr{background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;}
+.hdr-logo{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--acc);}
+.hdr-badge{font-size:10px;font-weight:700;background:var(--acc);color:#fff;padding:2px 8px;border-radius:20px;}
+.hdr-out{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);color:var(--mut);cursor:pointer;}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--surf);overflow-x:auto;}
+.tab{flex:1;min-width:60px;padding:10px 4px;font-size:11px;font-weight:600;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;color:var(--mut);font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc);}
+.body{padding:12px 14px 80px;max-width:600px;margin:0 auto;}
+.sec{display:none;}.sec.on{display:block;}
+.card{background:var(--surf);border:0.5px solid var(--bdr);border-radius:14px;padding:1rem;margin-bottom:.7rem;}
+.ct{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:8px;}
+.add-row{display:flex;gap:6px;margin-bottom:10px;}
+.add-row input{flex:1;padding:9px 11px;font-size:13px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--surf2);font-family:'DM Sans',sans-serif;outline:none;}
+.add-row input:focus{border-color:var(--acc);}
+.rep-rc{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf);border:0.5px solid var(--bdr);border-radius:12px;margin-bottom:6px;}
+.rep-av{width:38px;height:38px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.rep-inf{flex:1;}
+.rep-nm{font-size:13px;font-weight:600;color:var(--txt);}
+.rep-mt{font-size:11px;color:var(--mut);margin-top:2px;}
+.rep-del{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:var(--surf2);color:var(--mut);cursor:pointer;}
+.tgt-card{background:var(--surf);border:0.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:8px;}
+.tgt-hd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:10px;}
+.tgt-av{width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.tgt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tgt-f label{display:block;font-size:10px;font-weight:600;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}
+.tgt-f input{width:100%;padding:7px 9px;font-size:13px;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);font-family:'DM Sans',sans-serif;}
+.dash-rep{background:var(--surf);border:0.5px solid var(--bdr);border-radius:14px;padding:1rem;margin-bottom:.7rem;}
+.dash-rep-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+.dash-kpi{background:var(--surf2);border-radius:8px;padding:7px 4px;text-align:center;}
+.dash-kpi-n{font-size:18px;font-weight:700;font-family:'Space Mono',monospace;}
+.dash-kpi-l{font-size:9px;color:var(--mut);margin-top:1px;}
+.dash-bar-bg{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;}
+.dash-bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+.sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
+.sum-c{background:var(--surf);border:0.5px solid var(--bdr);border-radius:10px;padding:10px 6px;text-align:center;}
+.sum-n{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;}
+.sum-l{font-size:10px;color:var(--mut);margin-top:2px;}
+.mo-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mo-btn{padding:5px 14px;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt);cursor:pointer;font-size:13px;}
+.mo-lbl{font-size:13px;font-weight:600;color:var(--txt);}
+.chip{display:inline-flex;align-items:center;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--bdr);background:var(--surf2);cursor:pointer;margin:2px;}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.cxd-c{background:var(--surf);border:0.5px solid var(--bdr);border-radius:12px;padding:10px 12px;margin-bottom:6px;}
+.cxd-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.cxd-nm{font-size:13px;font-weight:600;}
+.cxd-mt{font-size:11px;color:var(--mut);margin-bottom:4px;}
+.cxd-row{display:flex;gap:10px;font-size:11px;color:var(--mut);flex-wrap:wrap;}
+.cx-st{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;}
+.st-pipeline{background:var(--blu-l);color:var(--blu);}
+.st-hot{background:var(--cor-l);color:var(--cor);}
+.st-warm{background:var(--amb-l);color:var(--amb);}
+.st-cold{background:var(--surf2);color:var(--mut);}
+.st-lost{background:var(--red-l);color:var(--red);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1814;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- PIN GATE -->
+<div id="pinGate" class="pin-gate">
+  <div class="pin-box">
+    <div class="logo">TORQUE LUBRICANTS</div>
+    <div class="pin-title">Admin Dashboard</div>
+    <div class="pin-sub">Enter your PIN to continue</div>
+    <input type="password" id="adminPinIn" maxlength="4" inputmode="numeric"
+      class="pin-input" placeholder="••••"
+      onkeydown="if(event.key==='Enter')doAdminLogin()"/>
+    <div class="pin-err" id="pinGateErr"></div>
+    <button class="pin-btn" onclick="doAdminLogin()">Enter</button>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp">
+  <div id="toast" class="toast"></div>
+  <div class="hdr">
+    <div>
+      <div class="hdr-logo">TORQUE LUBRICANTS</div>
+      <div style="font-size:10px;color:var(--mut);" id="adminDate"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="hdr-badge">ADMIN</span>
+      <button class="hdr-out" onclick="adminLogout()">Log out</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="aTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="aTab('team')">👥 Team</button>
+    <button class="tab" onclick="aTab('targets')">🎯 Targets</button>
+    <button class="tab" onclick="aTab('customers')">🏢 Customers</button>
+    <button class="tab" onclick="aTab('settings')">⚙ Settings</button>
+  </div>
+  <div class="body">
+
+    <!-- DASHBOARD -->
+    <div class="sec on" id="sec-dashboard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;" id="dashStatus">Loading…</span>
+        <button onclick="loadDashboard()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);color:var(--acc);cursor:pointer;font-weight:600;">↻ Refresh</button>
+      </div>
+      <div class="sum-grid">
+        <div class="sum-c"><div class="sum-n" style="color:var(--acc);" id="sToday">0</div><div class="sum-l">Today</div></div>
+        <div class="sum-c"><div class="sum-n" style="color:var(--grn);" id="sOrders">0</div><div class="sum-l">Orders</div></div>
+        <div class="sum-c"><div class="sum-n" style="color:var(--blu);" id="sPayments">0</div><div class="sum-l">Collected</div></div>
+        <div class="sum-c"><div class="sum-n" style="color:var(--pur);" id="sMonth">0</div><div class="sum-l">This month</div></div>
+      </div>
+      <div class="mo-nav">
+        <button class="mo-btn" onclick="chMo(-1)">‹</button>
+        <span class="mo-lbl" id="dashMoLbl"></span>
+        <button class="mo-btn" onclick="chMo(1)">›</button>
+      </div>
+      <div id="dashCards"></div>
+    </div>
+
+    <!-- TEAM -->
+    <div class="sec" id="sec-team">
+      <div class="card">
+        <div class="ct">Add salesman</div>
+        <div style="font-size:12px;color:var(--mut);margin-bottom:9px;">Name + 4-digit PIN. Rep selects name and enters PIN to log in.</div>
+        <div class="add-row">
+          <input type="text" id="newRepIn" placeholder="Full name…"/>
+          <input type="password" id="newRepPin" placeholder="PIN" maxlength="4" inputmode="numeric" style="width:72px;text-align:center;letter-spacing:4px;font-size:16px;flex:none;"/>
+          <button onclick="addRep()" style="padding:9px 14px;font-size:13px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);cursor:pointer;font-weight:600;">Add</button>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;margin-bottom:8px;" id="rosterLbl">Team</div>
+      <div id="repRoster"></div>
+      <div class="card" style="margin-top:12px;background:var(--blu-l);border-color:#b5d4f4;">
+        <div class="ct" style="color:var(--blu);">Share setup code with reps</div>
+        <div style="font-size:12px;color:var(--blu);margin-bottom:10px;line-height:1.6;">Generate a code and send via WhatsApp. Rep pastes it once to connect their phone.</div>
+        <button onclick="genCode()" style="width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);border:none;background:var(--blu);color:#fff;cursor:pointer;">📋 Generate Setup Code</button>
+        <div id="codeOut" style="display:none;margin-top:8px;">
+          <div style="font-size:11px;color:var(--mut);margin-bottom:4px;">Copy and send via WhatsApp:</div>
+          <div id="codeTxt" style="background:#fff;border:1px solid #b5d4f4;border-radius:8px;padding:8px;font-size:11px;font-family:monospace;word-break:break-all;color:var(--blu);"></div>
+          <button onclick="copyCode()" style="margin-top:6px;width:100%;padding:8px;font-size:12px;background:var(--acc);color:#fff;border:none;border-radius:8px;cursor:pointer;">Copy &amp; Share</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TARGETS -->
+    <div class="sec" id="sec-targets">
+      <div class="mo-nav">
+        <button class="mo-btn" onclick="chTgtMo(-1)">‹</button>
+        <span class="mo-lbl" id="tgtMoLbl"></span>
+        <button class="mo-btn" onclick="chTgtMo(1)">›</button>
+      </div>
+      <div id="tgtCards"></div>
+      <button onclick="saveTgts()" style="width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:var(--r);border:none;background:var(--acc);color:#fff;cursor:pointer;margin-top:8px;">Save targets</button>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="sec" id="sec-customers">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;margin-bottom:8px;" id="cxLbl">Customers</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;" id="cfRep"></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;" id="cfStatus">
+        <div class="chip on" data-cs="all">All</div>
+        <div class="chip" data-cs="pipeline">Pipeline</div>
+        <div class="chip" data-cs="hot">Hot</div>
+        <div class="chip" data-cs="warm">Warm</div>
+        <div class="chip" data-cs="cold">Cold</div>
+        <div class="chip" data-cs="lost">Lost</div>
+      </div>
+      <div id="cxCards"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="sec" id="sec-settings">
+      <div class="card">
+        <div class="ct">Change admin PIN</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input type="password" id="newPin" placeholder="New PIN" maxlength="4" inputmode="numeric" style="flex:1;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);font-family:'Space Mono',monospace;"/>
+          <input type="password" id="confPin" placeholder="Confirm" maxlength="4" inputmode="numeric" style="flex:1;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;border-radius:8px;border:1px solid var(--bdr);background:var(--surf2);font-family:'Space Mono',monospace;"/>
+        </div>
+        <button onclick="changeAdminPin()" style="width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);border:1px solid var(--bdr);background:var(--surf2);color:var(--txt);cursor:pointer;">Update PIN</button>
+      </div>
+      <div class="card" style="background:#e8f0ec;border-color:#b5d4c4;">
+        <div class="ct" style="color:#2d4a3e;">Export all data</div>
+        <div style="font-size:12px;color:#2d4a3e;margin-bottom:10px;line-height:1.6;">Download all visit history from all reps as a CSV file.</div>
+        <button onclick="exportCSV()" style="width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:var(--r);border:none;background:#2d4a3e;color:#fff;cursor:pointer;">⬇ Export visits as CSV</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const JB_KEY='$2a$10$aOWhl1iK87vYTeqw.oAHtOiMgyCYJw5I4GbvgHtgLNubI3we1X9x6';
+const JB_REP_KEY='svl_jb_rep_bin';
+const JB_VIS_KEY='svl_jb_vis_bin';
+const TODAY=new Date();
+let dashMoOff=0,tgtMoOff=0,allVisits=[],cfRepF='all',cfStatusF='all';
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ── PIN ──
+function getAdminPin(){return localStorage.getItem('svl_admin_pin')||'0000';}
+function doAdminLogin(){
+  const pin=$('adminPinIn').value.trim();
+  if(pin===getAdminPin()){
+    $('pinGate').style.display='none';
+    $('adminApp').style.display='block';
+    $('adminDate').textContent=TODAY.toLocaleDateString('en-AE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    loadDashboard();
+  } else {
+    $('pinGateErr').textContent='Incorrect PIN';
+    $('adminPinIn').value='';
+    $('adminPinIn').focus();
+  }
+}
+function adminLogout(){$('adminApp').style.display='none';$('adminPinIn').value='';$('pinGateErr').textContent='';$('pinGate').style.display='flex';}
+function changeAdminPin(){const n=$('newPin').value,c=$('confPin').value;if(!/^[0-9]{4}$/.test(n)){toast('Must be 4 digits');return;}if(n!==c){toast('PINs do not match');return;}localStorage.setItem('svl_admin_pin',n);$('newPin').value='';$('confPin').value='';toast('PIN updated ✓');}
+
+// ── TABS ──
+function aTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase().includes(t.slice(0,4).toLowerCase())));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  $('sec-'+t).classList.add('on');
+  if(t==='team')renderRoster();
+  if(t==='targets')renderTgts();
+  if(t==='customers')renderCx();
+}
+
+// ── CLOUD ──
+async function getBin(){
+  let id=localStorage.getItem(JB_VIS_KEY)||'';
+  if(id)return id;
+  const rid=localStorage.getItem(JB_REP_KEY)||'';
+  if(rid){try{const r=await fetch('https://api.jsonbin.io/v3/b/'+rid+'/latest',{headers:{'X-Master-Key':JB_KEY}});const d=await r.json();const v=d.record?.visitsBinId||'';if(v){localStorage.setItem(JB_VIS_KEY,v);return v;}}catch(e){}}
+  return null;
+}
+async function loadDashboard(){
+  $('dashStatus').textContent='Loading from cloud…';
+  try{
+    const id=await getBin();
+    if(!id){$('dashStatus').textContent='No cloud data found — ask reps to upload visits';renderDash([]);return;}
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+id+'/latest',{headers:{'X-Master-Key':JB_KEY}});
+    const d=await r.json();
+    allVisits=d.record?.visits||[];
+    const now=new Date().toLocaleTimeString('en-AE',{hour:'2-digit',minute:'2-digit'});
+    const todayV=allVisits.filter(v=>v.date===getDK());
+    $('sToday').textContent=todayV.length;
+    $('sOrders').textContent=todayV.filter(v=>v.outcome==='Order Placed').length;
+    $('sPayments').textContent=todayV.filter(v=>v.outcome==='Payment Collected').length;
+    const mk=moKey(dashMoOff);
+    $('sMonth').textContent=allVisits.filter(v=>v.date?.startsWith(mk)).length;
+    $('dashMoLbl').textContent=moLabel(dashMoOff);
+    $('dashStatus').textContent=allVisits.length+' total visits · Updated '+now;
+    renderDash(allVisits);
+  }catch(e){$('dashStatus').textContent='Failed to load — check connection';}
+}
+function getDK(){return new Date().toISOString().slice(0,10);}
+function moKey(off){const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+off,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function moLabel(off){const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+off,1);const l=d.toLocaleDateString('en-AE',{month:'long',year:'numeric'});return off===0?'This Month — '+l:off===-1?'Last Month — '+l:l;}
+function chMo(d){dashMoOff+=d;if(dashMoOff>0)dashMoOff=0;$('dashMoLbl').textContent=moLabel(dashMoOff);renderDash(allVisits);}
+function gradeInfo(s){if(s>=90)return{label:'Excellent 🏆',bg:'#186a30'};if(s>=75)return{label:'Good 👍',bg:'#2d4a3e'};if(s>=60)return{label:'On Track',bg:'#b5820a'};if(s>=40)return{label:'Needs Effort',bg:'#993c1d'};return{label:'Below Target',bg:'#c84b2f'};}
+function fmtAED(v){const n=parseFloat(v)||0;if(n>=1000000)return'AED '+(n/1000000).toFixed(2)+'M';if(n>=1000)return'AED '+(n/1000).toFixed(1)+'K';return'AED '+Math.round(n).toLocaleString();}
+function getTgts(){try{return JSON.parse(localStorage.getItem('svl_tgts'))||{};}catch{return{};}}
+function getRepTgt(rep,off){const t=getTgts(),mk=moKey(off);return(t[rep]&&t[rep][mk])||{visits:440,pipeline:110,firstvisit:110,newaccounts:20,salesTarget:0,collectionTarget:0};}
+
+function renderDash(visits){
+  const mk=moKey(dashMoOff);
+  const mv=visits.filter(v=>v.date?.startsWith(mk));
+  const reps=getReps();
+  const el=$('dashCards');
+  if(!reps.length){el.innerHTML='<div style="text-align:center;color:var(--mut);padding:2rem;">No reps added yet. Go to Team tab.</div>';return;}
+  el.innerHTML=reps.map(rep=>{
+    const rv=mv.filter(v=>v.rep===rep);
+    const valid=rv.filter(v=>v.outcome!=='Not Available');
+    const total=valid.length,pipeV=rv.filter(v=>(v.isNew||v.preExisting)&&v.outcome!=='Not Available').length;
+    const firstV=rv.filter(v=>v.isNew&&v.outcome!=='Not Available').length,newAccts=rv.filter(v=>v.wasNewAccount).length;
+    const orders=rv.filter(v=>v.outcome==='Order Placed'),payments=rv.filter(v=>v.outcome==='Payment Collected');
+    const salesVal=orders.reduce((s,v)=>s+(parseFloat(v.orderValue)||0),0);
+    const collVal=payments.reduce((s,v)=>s+(parseFloat(v.paymentAmount)||0),0);
+    const todayV=rv.filter(v=>v.date===getDK()).length;
+    const tgt=getRepTgt(rep,dashMoOff);
+    const vP=Math.min(total/(tgt.visits||440),1),pP=Math.min(pipeV/(tgt.pipeline||110),1),fP=Math.min(firstV/(tgt.firstvisit||110),1),nP=Math.min(newAccts/(tgt.newaccounts||20),1);
+    const score=Math.round(vP*40+pP*20+fP*20+nP*20);
+    const gr=gradeInfo(score);
+    const init=rep.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return`<div class="dash-rep">
+      <div class="dash-rep-top">
+        <div class="rep-av" style="width:40px;height:40px;font-size:13px;">${init}</div>
+        <div style="flex:1;"><div style="font-size:15px;font-weight:600;">${rep}</div><div style="font-size:11px;color:var(--mut);">Today: <strong>${todayV}</strong> · Month: <strong>${total}</strong>/${tgt.visits}</div></div>
+        <div style="text-align:center;"><div style="font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:${gr.bg};">${score}%</div><div style="font-size:10px;font-weight:600;color:${gr.bg};">${gr.label}</div></div>
+      </div>
+      <div class="dash-kpis">
+        <div class="dash-kpi"><div class="dash-kpi-n" style="color:var(--acc);">${total}</div><div class="dash-kpi-l">Visits</div></div>
+        <div class="dash-kpi"><div class="dash-kpi-n" style="color:var(--grn);">${orders.length}</div><div class="dash-kpi-l">Orders</div></div>
+        <div class="dash-kpi"><div class="dash-kpi-n" style="color:var(--blu);">${payments.length}</div><div class="dash-kpi-l">Payments</div></div>
+        <div class="dash-kpi"><div class="dash-kpi-n" style="color:var(--pur);">${pipeV}</div><div class="dash-kpi-l">Pipeline</div></div>
+      </div>
+      ${(tgt.salesTarget>0||tgt.collectionTarget>0)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:var(--grn-l);border-radius:8px;padding:7px 9px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#3b6d11;margin-bottom:1px;">💰 Sales</div><div style="font-size:13px;font-weight:700;color:var(--grn);">${fmtAED(salesVal)}</div><div style="font-size:10px;color:#3b6d11;">of ${fmtAED(tgt.salesTarget)}</div></div>
+        <div style="background:var(--blu-l);border-radius:8px;padding:7px 9px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--blu);margin-bottom:1px;">🏦 Collections</div><div style="font-size:13px;font-weight:700;color:var(--blu);">${fmtAED(collVal)}</div><div style="font-size:10px;color:var(--blu);">of ${fmtAED(tgt.collectionTarget)}</div></div>
+      </div>`:''}
+      <div class="dash-bar-bg"><div class="dash-bar-fill" style="width:${score}%;background:${gr.bg};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── TEAM ──
+function getReps(){try{return JSON.parse(localStorage.getItem('svl_reps'))||[];}catch{return[];}}
+function getRepPins(){try{return JSON.parse(localStorage.getItem('svl_rep_pins'))||{};}catch{return{};}}
+function saveRepPins(p){localStorage.setItem('svl_rep_pins',JSON.stringify(p));}
+function saveReps(l){localStorage.setItem('svl_reps',JSON.stringify(l));pushReps(l);}
+async function pushReps(reps){
+  try{
+    let id=localStorage.getItem(JB_REP_KEY)||'';
+    const visBin=localStorage.getItem(JB_VIS_KEY)||'';
+    const payload={approvedReps:reps,repPins:getRepPins(),visitsBinId:visBin,updatedAt:new Date().toISOString()};
+    if(!id){const r=await fetch('https://api.jsonbin.io/v3/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':JB_KEY,'X-Bin-Name':'torque-reps','X-Bin-Private':'true'},body:JSON.stringify(payload)});const d=await r.json();if(d.metadata?.id){id=d.metadata.id;localStorage.setItem(JB_REP_KEY,id);}}
+    else{await fetch('https://api.jsonbin.io/v3/b/'+id,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JB_KEY},body:JSON.stringify(payload)});}
+  }catch(e){}
+}
+function addRep(){
+  const name=$('newRepIn').value.trim(),pin=$('newRepPin').value.trim();
+  if(!name){toast('Enter a name');return;}
+  if(pin&&!/^[0-9]{4}$/.test(pin)){toast('PIN must be 4 digits');return;}
+  const list=getReps();
+  if(list.find(r=>r.toLowerCase()===name.toLowerCase())){toast('Already exists');return;}
+  list.push(name);
+  if(pin){const pins=getRepPins();pins[name]=pin;saveRepPins(pins);}
+  saveReps(list);
+  $('newRepIn').value='';$('newRepPin').value='';
+  renderRoster();toast(name+' added ✓');
+}
+function removeRep(name){
+  if(!confirm('Remove '+name+'?'))return;
+  const list=getReps().filter(r=>r!==name);
+  const pins=getRepPins();delete pins[name];saveRepPins(pins);
+  saveReps(list);renderRoster();toast(name+' removed');
+}
+function changeRepPin(name){
+  const pin=prompt('Set 4-digit PIN for '+name+':');
+  if(!pin)return;
+  if(!/^[0-9]{4}$/.test(pin)){toast('Must be 4 digits');return;}
+  const pins=getRepPins();pins[name]=pin;saveRepPins(pins);
+  pushReps(getReps());
+  toast('PIN updated for '+name+' ✓');renderRoster();
+}
+function renderRoster(){
+  const list=getReps(),pins=getRepPins();
+  $('rosterLbl').textContent='Team — '+list.length+' salesman'+(list.length!==1?'s':'');
+  const c=$('repRoster');
+  if(!list.length){c.innerHTML='<div style="text-align:center;color:var(--mut);font-size:13px;padding:1rem;">No salesmen added yet.</div>';return;}
+  c.innerHTML=list.map(rep=>{
+    const init=rep.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hasPIN=!!pins[rep];
+    const moV=allVisits.filter(v=>v.rep===rep&&v.date?.startsWith(moKey(0))).length;
+    const todayV=allVisits.filter(v=>v.rep===rep&&v.date===getDK()).length;
+    return`<div class="rep-rc"><div class="rep-av">${init}</div><div class="rep-inf"><div class="rep-nm">${rep} <span style="font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;${hasPIN?'background:#e8f5e8;color:#2d7a2d':'background:#fff0e0;color:#b06000'}">${hasPIN?'🔒 PIN set':'⚠ No PIN'}</span></div><div class="rep-mt">Today: <strong>${todayV}</strong> · Month: <strong>${moV}</strong></div></div><div style="display:flex;gap:4px;"><button class="rep-del" onclick="changeRepPin('${rep.replace(/'/g,"\'")}')">Set PIN</button><button class="rep-del" style="color:var(--red);" onclick="removeRep('${rep.replace(/'/g,"\'")}')">Remove</button></div></div>`;
+  }).join('');
+}
+function genCode(){
+  const reps=getReps();if(!reps.length){toast('Add reps first');return;}
+  const binId=localStorage.getItem(JB_REP_KEY)||'';
+  const visBinId=localStorage.getItem(JB_VIS_KEY)||'';
+  const code=btoa(JSON.stringify({reps,binId,visitsBinId:visBinId,repPins:getRepPins(),ts:Date.now()}));
+  $('codeOut').style.display='block';$('codeTxt').textContent=code;
+}
+function copyCode(){
+  const code=$('codeTxt').textContent;
+  const msg='Open this link to start logging visits:\nhttps://torquesalesvisits.pages.dev\n\nPaste this setup code when asked:\n'+code;
+  navigator.clipboard.writeText(msg).then(()=>toast('✓ Copied — paste in WhatsApp'));
+}
+
+// ── TARGETS ──
+function chTgtMo(d){tgtMoOff+=d;if(tgtMoOff>2)tgtMoOff=2;$('tgtMoLbl').textContent=moLabel(tgtMoOff);renderTgts();}
+function renderTgts(){
+  $('tgtMoLbl').textContent=moLabel(tgtMoOff);
+  const list=getReps(),mk=moKey(tgtMoOff),t=getTgts(),c=$('tgtCards');
+  if(!list.length){c.innerHTML='<div style="text-align:center;color:var(--mut);font-size:13px;padding:1rem;">No salesmen added.</div>';return;}
+  c.innerHTML=list.map(rep=>{
+    const tg=(t[rep]&&t[rep][mk])||{visits:440,pipeline:110,firstvisit:110,newaccounts:20,salesTarget:0,collectionTarget:0};
+    const init=rep.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return`<div class="tgt-card"><div class="tgt-hd"><div class="tgt-av">${init}</div>${rep}</div><div class="tgt-grid">
+      <div class="tgt-f"><label>Total Visits</label><input type="number" id="t_${mk}_${rep}_vis" value="${tg.visits}" min="0"/></div>
+      <div class="tgt-f"><label>Pipeline Visits</label><input type="number" id="t_${mk}_${rep}_pip" value="${tg.pipeline}" min="0"/></div>
+      <div class="tgt-f"><label>First Visits</label><input type="number" id="t_${mk}_${rep}_fv" value="${tg.firstvisit}" min="0"/></div>
+      <div class="tgt-f"><label>New Accounts</label><input type="number" id="t_${mk}_${rep}_na" value="${tg.newaccounts}" min="0"/></div>
+      <div class="tgt-f"><label>💰 Sales Target (AED)</label><input type="number" id="t_${mk}_${rep}_st" value="${tg.salesTarget}" min="0"/></div>
+      <div class="tgt-f"><label>🏦 Collection Target (AED)</label><input type="number" id="t_${mk}_${rep}_ct" value="${tg.collectionTarget}" min="0"/></div>
+    </div></div>`;
+  }).join('');
+}
+function saveTgts(){
+  const list=getReps(),mk=moKey(tgtMoOff),t=getTgts();
+  list.forEach(rep=>{
+    const v=id=>document.getElementById('t_'+mk+'_'+rep+'_'+id);
+    if(!v('vis'))return;
+    if(!t[rep])t[rep]={};
+    t[rep][mk]={visits:parseInt(v('vis').value)||440,pipeline:parseInt(v('pip').value)||110,firstvisit:parseInt(v('fv').value)||110,newaccounts:parseInt(v('na').value)||20,salesTarget:parseFloat(v('st').value)||0,collectionTarget:parseFloat(v('ct').value)||0};
+  });
+  localStorage.setItem('svl_tgts',JSON.stringify(t));toast('Targets saved ✓');
+}
+
+// ── CUSTOMERS ──
+function cxStatus(name){
+  const orders=allVisits.filter(v=>v.customer?.toLowerCase()===name.toLowerCase()&&v.outcome==='Order Placed').sort((a,b)=>b.date>a.date?1:-1);
+  if(!orders.length)return'pipeline';
+  const ds=Math.floor((new Date(getDK())-new Date(orders[0].date))/(864e5));
+  if(ds<=30)return'hot';if(ds<=60)return'warm';if(ds<=90)return'cold';return'lost';
+}
+const SL={pipeline:'🔵 Pipeline',hot:'🔥 Hot',warm:'🟡 Warm',cold:'❄️ Cold',lost:'❌ Lost'};
+const SB={pipeline:'st-pipeline',hot:'st-hot',warm:'st-warm',cold:'st-cold',lost:'st-lost'};
+function renderCx(){
+  document.querySelectorAll('#cfStatus .chip').forEach(c=>{c.onclick=()=>{cfStatusF=c.dataset.cs;document.querySelectorAll('#cfStatus .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');renderCx();};});
+  const reps=getReps();
+  const rfEl=$('cfRep');
+  if(rfEl&&!rfEl.hasChildNodes()){rfEl.innerHTML='<div class="chip on" data-cr="all">All</div>'+reps.map(r=>`<div class="chip" data-cr="${r}">${r.split(' ')[0]}</div>`).join('');rfEl.querySelectorAll('.chip').forEach(c=>{c.onclick=()=>{cfRepF=c.dataset.cr;rfEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');renderCx();};});}
+  const names=[...new Set(allVisits.map(v=>v.customer).filter(Boolean))];
+  let cxs=names.map(name=>({name,status:cxStatus(name),rep:allVisits.filter(v=>v.customer===name).slice(-1)[0]?.rep||''}));
+  if(cfRepF!=='all')cxs=cxs.filter(c=>c.rep===cfRepF);
+  if(cfStatusF!=='all')cxs=cxs.filter(c=>c.status===cfStatusF);
+  cxs.sort((a,b)=>({pipeline:0,hot:1,warm:2,cold:3,lost:4}[a.status]-{pipeline:0,hot:1,warm:2,cold:3,lost:4}[b.status])||a.name.localeCompare(b.name));
+  $('cxLbl').textContent=cxs.length+' customer'+(cxs.length!==1?'s':'')+(cxs.length!==names.length?' (filtered)':' total');
+  const c=$('cxCards');
+  if(!cxs.length){c.innerHTML='<div style="text-align:center;color:var(--mut);padding:2rem;">No customers.</div>';return;}
+  c.innerHTML=cxs.map(cx=>{
+    const cv=allVisits.filter(v=>v.customer===cx.name).sort((a,b)=>b.date>a.date?1:-1);
+    const lv=cv[0];const ds=lv?Math.floor((new Date(getDK())-new Date(lv.date))/(864e5)):null;
+    return`<div class="cxd-c"><div class="cxd-top"><div class="cxd-nm">${cx.name}</div><span class="cx-st ${SB[cx.status]}">${SL[cx.status]}</span></div><div class="cxd-mt">👤 ${cx.rep||'—'} &nbsp;·&nbsp; ${cv.length} visits</div><div class="cxd-row"><span>${ds===0?'Today':ds===1?'Yesterday':ds+'d ago'}</span><span>Last: ${lv?.outcome||'—'}</span></div></div>`;
+  }).join('');
+}
+
+// ── EXPORT ──
+function exportCSV(){
+  if(!allVisits.length){toast('No visits — refresh first');return;}
+  const H=['ID','Date','Time','Rep','Customer','Emirate','Area','Outcome','Order Value','Payment Type','Payment Amount','Next Action','Note'];
+  const esc=v=>`"${(v||'').toString().replace(/"/g,'""')}"`;
+  const rows=allVisits.map(v=>[v.id,v.date,v.time,v.rep,v.customer,v.emirate,v.area,v.outcome,v.orderValue||'',v.paymentType||'',v.paymentAmount||'',v.next,v.note].map(esc));
+  const csv=[H.map(esc),...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='torque_visits_'+getDK()+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  toast('✓ CSV downloaded');
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  // Pre-fill reps list with Ajmal, Saly, Rashid if empty
+  if(!localStorage.getItem('svl_reps')){
+    localStorage.setItem('svl_reps',JSON.stringify(['Ajmal','Saly','Rashid']));
+  }
+  $('adminPinIn').focus();
+  $('tgtMoLbl').textContent=moLabel(0);
+  $('dashMoLbl').textContent=moLabel(0);
+});
+</script>
+</body>
+</html>
