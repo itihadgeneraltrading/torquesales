@@ -487,11 +487,11 @@
             <div id="dashboard" class="tab-content">
                 <h2>Today's Summary</h2>
                 <div class="kpi-grid">
-                    <div class="kpi-card"><div class="kpi-label">Visits</div><div class="kpi-value" id="todayVisits">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Orders Today</div><div class="kpi-value" id="todayOrders">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Order Amount (AED)</div><div class="kpi-value" id="todayOrderAmount">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Collections Today</div><div class="kpi-value" id="todayCollections">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Collections (AED)</div><div class="kpi-value" id="todayCollectionAmount">0</div></div>
+                    <div class="kpi-card" style="cursor: pointer;" onclick="showTodayDetails('visits')"><div class="kpi-label">Visits</div><div class="kpi-value" id="todayVisits">0</div><div style="font-size: 11px; color: #999; margin-top: 8px;">Click to see details</div></div>
+                    <div class="kpi-card" style="cursor: pointer;" onclick="showTodayDetails('orders')"><div class="kpi-label">Orders Today</div><div class="kpi-value" id="todayOrders">0</div><div style="font-size: 11px; color: #999; margin-top: 8px;">Click to see details</div></div>
+                    <div class="kpi-card" style="cursor: pointer;" onclick="showTodayDetails('orderAmount')"><div class="kpi-label">Order Amount (AED)</div><div class="kpi-value" id="todayOrderAmount">0</div><div style="font-size: 11px; color: #999; margin-top: 8px;">Click to see details</div></div>
+                    <div class="kpi-card" style="cursor: pointer;" onclick="showTodayDetails('collections')"><div class="kpi-label">Collections Today</div><div class="kpi-value" id="todayCollections">0</div><div style="font-size: 11px; color: #999; margin-top: 8px;">Click to see details</div></div>
+                    <div class="kpi-card" style="cursor: pointer;" onclick="showTodayDetails('collectionAmount')"><div class="kpi-label">Collections (AED)</div><div class="kpi-value" id="todayCollectionAmount">0</div><div style="font-size: 11px; color: #999; margin-top: 8px;">Click to see details</div></div>
                 </div>
 
                 <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px; margin-bottom: 15px;">
@@ -1504,6 +1504,79 @@
 
             // Update scoreboard for the selected month
             renderScoreboard({ visits: data.totalVisits, sales: data.totalSales, collection: data.totalCollection, newAccounts: data.totalNewAccounts }, data.monthName);
+        }
+
+        function showTodayDetails(type) {
+            const today = todayStr();
+            const todayVisits = allVisits.filter(v => v.date === today);
+            const orders = todayVisits.filter(v => v.outcome === "Order Placed");
+            const collections = todayVisits.filter(v => v.outcome === "Payment Collected");
+
+            let title = '';
+            let content = '';
+
+            if (type === 'visits') {
+                title = `Today's Visits (${today})`;
+                content = `Total Visits: ${todayVisits.length}<br><br>`;
+                if (todayVisits.length === 0) {
+                    content += 'No visits today';
+                } else {
+                    content += '<strong>Visit List:</strong><br>';
+                    todayVisits.forEach(v => {
+                        content += `${v.customerName} - ${v.visitReason} (${v.outcome})<br>`;
+                    });
+                }
+            } else if (type === 'orders') {
+                title = `Today's Orders (${today})`;
+                content = `Total Orders: ${orders.length}<br><br>`;
+                if (orders.length === 0) {
+                    content += 'No orders today';
+                } else {
+                    content += '<strong>Orders:</strong><br>';
+                    orders.forEach(v => {
+                        content += `${v.customerName} - AED ${nf(v.orderValue)}<br>`;
+                    });
+                }
+            } else if (type === 'orderAmount') {
+                title = `Today's Sales (${today})`;
+                const totalSales = orders.reduce((s, v) => s + (Number(v.orderValue) || 0), 0);
+                content = `Total Sales: AED ${nf(totalSales)}<br><br>`;
+                if (orders.length === 0) {
+                    content += 'No sales today';
+                } else {
+                    content += '<strong>Orders:</strong><br>';
+                    orders.forEach(v => {
+                        content += `${v.customerName} - AED ${nf(v.orderValue)}<br>`;
+                    });
+                }
+            } else if (type === 'collections') {
+                title = `Today's Collections (${today})`;
+                content = `Total Collections: ${collections.length}<br><br>`;
+                if (collections.length === 0) {
+                    content += 'No collections today';
+                } else {
+                    content += '<strong>Collections:</strong><br>';
+                    collections.forEach(v => {
+                        content += `${v.customerName} - AED ${nf(v.paymentValue)} (${v.paymentType})<br>`;
+                    });
+                }
+            } else if (type === 'collectionAmount') {
+                title = `Today's Collection Amount (${today})`;
+                const totalCollection = collections.reduce((s, v) => s + (Number(v.paymentValue) || 0), 0);
+                content = `Total Collections: AED ${nf(totalCollection)}<br><br>`;
+                if (collections.length === 0) {
+                    content += 'No collections today';
+                } else {
+                    content += '<strong>Collections:</strong><br>';
+                    collections.forEach(v => {
+                        content += `${v.customerName} - AED ${nf(v.paymentValue)} (${v.paymentType})<br>`;
+                    });
+                }
+            }
+
+            document.getElementById("kpiModalTitle").textContent = title;
+            document.getElementById("kpiModalContent").innerHTML = content;
+            document.getElementById("kpiModal").style.display = "flex";
         }
 
         function showKPIDetails(type) {
