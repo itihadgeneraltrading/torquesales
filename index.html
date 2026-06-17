@@ -1080,10 +1080,7 @@
             document.getElementById("deleteBtn").style.display = "block";
             document.getElementById("cancelBtn").style.display = "block";
 
-            document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-            document.getElementById("log").classList.add("active");
-            document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-            document.querySelector(".tab-btn").classList.add("active");
+            alert("Form populated. Scroll up to edit and save changes.");
         }
 
         function updateDashboard() {
