@@ -207,6 +207,8 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1814;min-heigh
 </div>
 
 <script>
+const SUPABASE_URL = "https://mlzqbtafriocbsyzfagc.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1senFidGFmcmlvY2JzeXpmYWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODc4MzUsImV4cCI6MjA5NjU2MzgzNX0.ZwYm6qVav9TUtt4ruaDN4ozmrm3Cce2XIFUQcQ_duvc";
 const JB_KEY='$2a$10$aOWhl1iK87vYTeqw.oAHtOiMgyCYJw5I4GbvgHtgLNubI3we1X9x6';
 const JB_REP_KEY='svl_jb_rep_bin';
 const JB_VIS_KEY='svl_jb_vis_bin';
@@ -254,11 +256,14 @@ async function getBin(){
 async function loadDashboard(){
   $('dashStatus').textContent='Loading from cloud…';
   try{
-    const id=await getBin();
-    if(!id){$('dashStatus').textContent='No cloud data found — ask reps to upload visits';renderDash([]);return;}
-    const r=await fetch('https://api.jsonbin.io/v3/b/'+id+'/latest',{headers:{'X-Master-Key':JB_KEY}});
-    const d=await r.json();
-    allVisits=d.record?.visits||[];
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/visits`,{
+      headers:{
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':`Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if(!r.ok)throw new Error('API error');
+    allVisits=await r.json();
     const now=new Date().toLocaleTimeString('en-AE',{hour:'2-digit',minute:'2-digit'});
     const todayV=allVisits.filter(v=>v.date===getDK());
     $('sToday').textContent=todayV.length;
@@ -287,13 +292,13 @@ function renderDash(visits){
   const el=$('dashCards');
   if(!reps.length){el.innerHTML='<div style="text-align:center;color:var(--mut);padding:2rem;">No reps added yet. Go to Team tab.</div>';return;}
   el.innerHTML=reps.map(rep=>{
-    const rv=mv.filter(v=>v.rep===rep);
+    const rv=mv.filter(v=>v.repName===rep);
     const valid=rv.filter(v=>v.outcome!=='Not Available');
-    const total=valid.length,pipeV=rv.filter(v=>(v.isNew||v.preExisting)&&v.outcome!=='Not Available').length;
-    const firstV=rv.filter(v=>v.isNew&&v.outcome!=='Not Available').length,newAccts=rv.filter(v=>v.wasNewAccount).length;
+    const total=valid.length,pipeV=rv.filter(v=>(v.visitType==='new')&&v.outcome!=='Not Available').length;
+    const firstV=rv.filter(v=>v.visitType==='new'&&v.outcome!=='Not Available').length,newAccts=rv.filter(v=>v.outcome==='Order Placed').length;
     const orders=rv.filter(v=>v.outcome==='Order Placed'),payments=rv.filter(v=>v.outcome==='Payment Collected');
     const salesVal=orders.reduce((s,v)=>s+(parseFloat(v.orderValue)||0),0);
-    const collVal=payments.reduce((s,v)=>s+(parseFloat(v.paymentAmount)||0),0);
+    const collVal=payments.reduce((s,v)=>s+(parseFloat(v.paymentValue)||0),0);
     const todayV=rv.filter(v=>v.date===getDK()).length;
     const tgt=getRepTgt(rep,dashMoOff);
     const vP=Math.min(total/(tgt.visits||440),1),pP=Math.min(pipeV/(tgt.pipeline||110),1),fP=Math.min(firstV/(tgt.firstvisit||110),1),nP=Math.min(newAccts/(tgt.newaccounts||20),1);
@@ -369,8 +374,8 @@ function renderRoster(){
   c.innerHTML=list.map(rep=>{
     const init=rep.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const hasPIN=!!pins[rep];
-    const moV=allVisits.filter(v=>v.rep===rep&&v.date?.startsWith(moKey(0))).length;
-    const todayV=allVisits.filter(v=>v.rep===rep&&v.date===getDK()).length;
+    const moV=allVisits.filter(v=>v.repName===rep&&v.date?.startsWith(moKey(0))).length;
+    const todayV=allVisits.filter(v=>v.repName===rep&&v.date===getDK()).length;
     return`<div class="rep-rc"><div class="rep-av">${init}</div><div class="rep-inf"><div class="rep-nm">${rep} <span style="font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;${hasPIN?'background:#e8f5e8;color:#2d7a2d':'background:#fff0e0;color:#b06000'}">${hasPIN?'🔒 PIN set':'⚠ No PIN'}</span></div><div class="rep-mt">Today: <strong>${todayV}</strong> · Month: <strong>${moV}</strong></div></div><div style="display:flex;gap:4px;"><button class="rep-del" onclick="changeRepPin('${rep.replace(/'/g,"\'")}')">Set PIN</button><button class="rep-del" style="color:var(--red);" onclick="removeRep('${rep.replace(/'/g,"\'")}')">Remove</button></div></div>`;
   }).join('');
 }
@@ -419,7 +424,7 @@ function saveTgts(){
 
 // ── CUSTOMERS ──
 function cxStatus(name){
-  const orders=allVisits.filter(v=>v.customer?.toLowerCase()===name.toLowerCase()&&v.outcome==='Order Placed').sort((a,b)=>b.date>a.date?1:-1);
+  const orders=allVisits.filter(v=>v.customerName?.toLowerCase()===name.toLowerCase()&&v.outcome==='Order Placed').sort((a,b)=>b.date>a.date?1:-1);
   if(!orders.length)return'pipeline';
   const ds=Math.floor((new Date(getDK())-new Date(orders[0].date))/(864e5));
   if(ds<=30)return'hot';if(ds<=60)return'warm';if(ds<=90)return'cold';return'lost';
@@ -431,8 +436,8 @@ function renderCx(){
   const reps=getReps();
   const rfEl=$('cfRep');
   if(rfEl&&!rfEl.hasChildNodes()){rfEl.innerHTML='<div class="chip on" data-cr="all">All</div>'+reps.map(r=>`<div class="chip" data-cr="${r}">${r.split(' ')[0]}</div>`).join('');rfEl.querySelectorAll('.chip').forEach(c=>{c.onclick=()=>{cfRepF=c.dataset.cr;rfEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');renderCx();};});}
-  const names=[...new Set(allVisits.map(v=>v.customer).filter(Boolean))];
-  let cxs=names.map(name=>({name,status:cxStatus(name),rep:allVisits.filter(v=>v.customer===name).slice(-1)[0]?.rep||''}));
+  const names=[...new Set(allVisits.map(v=>v.customerName).filter(Boolean))];
+  let cxs=names.map(name=>({name,status:cxStatus(name),rep:allVisits.filter(v=>v.customerName===name).slice(-1)[0]?.repName||''}));
   if(cfRepF!=='all')cxs=cxs.filter(c=>c.rep===cfRepF);
   if(cfStatusF!=='all')cxs=cxs.filter(c=>c.status===cfStatusF);
   cxs.sort((a,b)=>({pipeline:0,hot:1,warm:2,cold:3,lost:4}[a.status]-{pipeline:0,hot:1,warm:2,cold:3,lost:4}[b.status])||a.name.localeCompare(b.name));
@@ -440,7 +445,7 @@ function renderCx(){
   const c=$('cxCards');
   if(!cxs.length){c.innerHTML='<div style="text-align:center;color:var(--mut);padding:2rem;">No customers.</div>';return;}
   c.innerHTML=cxs.map(cx=>{
-    const cv=allVisits.filter(v=>v.customer===cx.name).sort((a,b)=>b.date>a.date?1:-1);
+    const cv=allVisits.filter(v=>v.customerName===cx.name).sort((a,b)=>b.date>a.date?1:-1);
     const lv=cv[0];const ds=lv?Math.floor((new Date(getDK())-new Date(lv.date))/(864e5)):null;
     return`<div class="cxd-c"><div class="cxd-top"><div class="cxd-nm">${cx.name}</div><span class="cx-st ${SB[cx.status]}">${SL[cx.status]}</span></div><div class="cxd-mt">👤 ${cx.rep||'—'} &nbsp;·&nbsp; ${cv.length} visits</div><div class="cxd-row"><span>${ds===0?'Today':ds===1?'Yesterday':ds+'d ago'}</span><span>Last: ${lv?.outcome||'—'}</span></div></div>`;
   }).join('');
@@ -451,7 +456,7 @@ function exportCSV(){
   if(!allVisits.length){toast('No visits — refresh first');return;}
   const H=['ID','Date','Time','Rep','Customer','Emirate','Area','Outcome','Order Value','Payment Type','Payment Amount','Next Action','Note'];
   const esc=v=>`"${(v||'').toString().replace(/"/g,'""')}"`;
-  const rows=allVisits.map(v=>[v.id,v.date,v.time,v.rep,v.customer,v.emirate,v.area,v.outcome,v.orderValue||'',v.paymentType||'',v.paymentAmount||'',v.next,v.note].map(esc));
+  const rows=allVisits.map(v=>[v.id,v.date,v.time,v.repName,v.customerName,v.emirate,v.area,v.outcome,v.orderValue||'',v.paymentType||'',v.paymentValue||'',v.nextAction,v.note].map(esc));
   const csv=[H.map(esc),...rows].map(r=>r.join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);

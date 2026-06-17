@@ -548,10 +548,11 @@
                                 <th>Reason</th>
                                 <th>Outcome</th>
                                 <th>Amount (AED)</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="historyTable">
-                            <tr><td colspan="5" style="text-align: center; color: #999;">No visits</td></tr>
+                            <tr><td colspan="6" style="text-align: center; color: #999;">No visits</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -644,6 +645,7 @@
         let allCustomers = [];
         let customerMap = {};            // name -> customer info object
         let targets = { ...DEFAULT_TARGETS };
+        let editingVisit = null;         // tracks which visit is being edited
 
         function todayStr() { return new Date().toISOString().split('T')[0]; }
         function thisMonthStr() { return new Date().toISOString().slice(0, 7); }
@@ -948,8 +950,12 @@
                     else showStatus(`Retrying... (Attempt ${retries + 1}/${maxRetries})`, "loading");
 
                     btn.disabled = true;
-                    const res = await fetch(`${SUPABASE_URL}/rest/v1/visits`, {
-                        method: "POST",
+                    const isUpdate = !!editingVisit && editingVisit.id;
+                    const method = isUpdate ? "PATCH" : "POST";
+                    const url = isUpdate ? `${SUPABASE_URL}/rest/v1/visits?id=eq.${editingVisit.id}` : `${SUPABASE_URL}/rest/v1/visits`;
+
+                    const res = await fetch(url, {
+                        method: method,
                         headers: {
                             "Content-Type": "application/json",
                             "apikey": SUPABASE_ANON_KEY,
@@ -963,7 +969,8 @@
                         throw new Error(err.message || "Failed to save");
                     }
 
-                    showStatus("✓ Visit saved successfully!", "success");
+                    const msg = isUpdate ? "✓ Visit updated successfully!" : "✓ Visit saved successfully!";
+                    showStatus(msg, "success");
                     localStorage.removeItem("torqueSalesFormBackup");
                     resetForm();
                     await loadData();
@@ -994,6 +1001,89 @@
             document.getElementById("existingInfo").classList.add("hidden-field");
             onReasonsChange();
             onPaymentTypeChange();
+            editingVisit = null;
+            document.getElementById("deleteBtn").style.display = "none";
+            document.getElementById("cancelBtn").style.display = "none";
+        }
+
+        function deleteVisit() {
+            if (!editingVisit) return;
+            const pin = prompt("Enter your PIN to confirm delete:");
+            if (!pin) return;
+            if (REPS[pin] !== currentRep) { alert("Invalid PIN"); return; }
+
+            if (confirm("Permanently delete this visit?")) {
+                deleteVisitFromDB();
+            }
+        }
+
+        async function deleteVisitFromDB() {
+            try {
+                showStatus("Deleting visit...", "loading");
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/visits?id=eq.${editingVisit.id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to delete");
+                showStatus("✓ Visit deleted", "success");
+                resetForm();
+                await loadData();
+                setTimeout(() => { document.getElementById("formStatus").className = "status-msg"; }, 3000);
+            } catch (e) {
+                showStatus("Error: " + e.message, "error");
+            }
+        }
+
+        function cancelEdit() {
+            if (confirm("Discard changes?")) {
+                resetForm();
+            }
+        }
+
+        function editVisit(idx) {
+            const v = allVisits[idx];
+            editingVisit = v;
+
+            document.getElementById("customerName").value = v.customerName || "";
+            document.getElementById("area").value = v.area || "";
+            document.getElementById("contact").value = v.contact || "";
+            document.getElementById("emirate").value = v.emirate || "";
+            document.getElementById("industry").value = v.industry || "";
+            document.getElementById("designation").value = v.designation || "";
+            document.getElementById("nextAction").value = v.nextAction || "";
+            document.getElementById("note").value = v.note || "";
+
+            const hasOrder = v.visitReason?.includes("Order");
+            const hasPayment = v.visitReason?.includes("Payment");
+            document.getElementById("reasonOrder").checked = hasOrder;
+            document.getElementById("reasonPayment").checked = hasPayment;
+
+            if (hasOrder) {
+                document.getElementById("orderOutcome").value = v.outcome === "Order Placed" ? "Order Placed" : "";
+                document.getElementById("orderValue").value = v.orderValue || "";
+            }
+            if (hasPayment) {
+                document.getElementById("paymentOutcome").value = v.outcome === "Payment Collected" ? "Payment Collected" : "";
+                document.getElementById("paymentType").value = v.paymentType || "";
+                document.getElementById("paymentValue").value = v.paymentValue || "";
+                document.getElementById("chequeType").value = v.chequeType || "";
+                document.getElementById("paymentDate").value = v.paymentDate || "";
+            }
+
+            onReasonsChange();
+            onPaymentTypeChange();
+            onCustomerInput();
+
+            document.getElementById("deleteBtn").style.display = "block";
+            document.getElementById("cancelBtn").style.display = "block";
+
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+            document.getElementById("log").classList.add("active");
+            document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+            document.querySelector(".tab-btn").classList.add("active");
         }
 
         function updateDashboard() {
@@ -1060,8 +1150,8 @@
             const date = document.getElementById("historyDate").value;
             const tbody = document.getElementById("historyTable");
             const rows = (date ? allVisits.filter(v => v.date === date) : allVisits);
-            tbody.innerHTML = rows.length === 0 ? '<tr><td colspan="5" style="text-align: center; color:#999;">No visits</td></tr>' :
-                rows.map(v => {
+            tbody.innerHTML = rows.length === 0 ? '<tr><td colspan="6" style="text-align: center; color:#999;">No visits</td></tr>' :
+                rows.map((v, idx) => {
                     const amt = v.outcome === "Order Placed" ? v.orderValue : (v.outcome === "Payment Collected" ? v.paymentValue : 0);
                     return `<tr>
                         <td>${v.date}</td>
@@ -1069,6 +1159,7 @@
                         <td>${v.visitReason || ""}</td>
                         <td><span class="badge ${outcomeBadge(v.outcome)}">${v.outcome || "—"}</span></td>
                         <td>${nf(amt)}</td>
+                        <td><button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="editVisit(${idx})">Edit</button></td>
                     </tr>`;
                 }).join("");
         }
