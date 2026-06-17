@@ -297,16 +297,16 @@
                 <div class="form-section">
                     <div class="status-msg" id="formStatus"></div>
 
+                    <div class="customer-type-selector">
+                        <button class="type-btn active" id="typeExistingBtn" onclick="selectCustomerType('existing')">Existing Customer</button>
+                        <button class="type-btn" id="typeNewBtn" onclick="selectCustomerType('new')">New Customer</button>
+                    </div>
+
                     <!-- CUSTOMER -->
                     <div class="form-group">
                         <label class="form-label">Customer Name</label>
-                        <div style="display:flex;gap:8px;position:relative;">
-                            <input type="text" id="customerName" class="form-input" placeholder="Type customer name..." autocomplete="off" oninput="onCustomerInput()" onchange="onCustomerInput()" style="flex:1;">
-                            <button type="button" id="addNewBtn" class="btn" style="display:none;background:#d32f2f;padding:8px 12px;white-space:nowrap;">+ Add</button>
-                            <div id="customerDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin-top:2px;">
-                                <div id="customerList"></div>
-                            </div>
-                        </div>
+                        <input type="text" id="customerName" class="form-input" placeholder="Type customer name..." list="customerList" autocomplete="off" oninput="onCustomerInput()" onchange="onCustomerInput()">
+                        <datalist id="customerList"></datalist>
                     </div>
 
                     <!-- EXISTING CUSTOMER: read-only info + status -->
@@ -444,8 +444,8 @@
                                 <label class="form-label">Cheque Type</label>
                                 <select id="chequeType" class="form-select">
                                     <option value="">Select</option>
-                                    <option>Current Month</option>
-                                    <option>Next Month</option>
+                                    <option>Post Dated</option>
+                                    <option>Current Dated</option>
                                 </select>
                             </div>
                         </div>
@@ -475,7 +475,11 @@
                         <textarea id="note" class="form-input" placeholder="Products discussed, remarks..." style="min-height: 60px;"></textarea>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-top: 10px;"><button class="btn" style="flex: 1;" id="submitBtn" onclick="submitVisit()">Save</button><button class="btn" style="flex: 1; background: #d32f2f; display: none;" id="deleteBtn" onclick="deleteVisit()">Delete</button><button class="btn" style="flex: 1; background: #999; display: none;" id="cancelBtn" onclick="cancelEdit()">Cancel</button></div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn" style="flex: 1;" id="submitBtn" onclick="submitVisit()">Save</button>
+                        <button class="btn" style="flex: 1; background: #d32f2f; display: none;" id="deleteBtn" onclick="deleteVisit()">Delete</button>
+                        <button class="btn" style="flex: 1; background: #999; display: none;" id="cancelBtn" onclick="cancelEdit()">Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -781,78 +785,38 @@
 
         function selectCustomerType(type) {
             customerType = type;
-            // Buttons were removed, skip toggle
-            // New-customer fields only show when explicitly adding new customer
-            document.getElementById("newCustomerFields").classList.add("hidden-field");
+            document.getElementById("typeExistingBtn").classList.toggle("active", type === "existing");
+            document.getElementById("typeNewBtn").classList.toggle("active", type === "new");
+            // New-customer fields (incl. contact/designation) only show in "new" mode
+            document.getElementById("newCustomerFields").classList.toggle("hidden-field", type !== "new");
+            if (type === "new") {
+                document.getElementById("existingInfo").classList.add("hidden-field");
+            } else {
+                onCustomerInput();
+            }
         }
 
         // When an existing customer name is recognized, show read-only info + status
         function onCustomerInput() {
-            const input = document.getElementById("customerName").value.trim();
-            const inputLower = input.toLowerCase();
-            const dropdown = document.getElementById("customerDropdown");
-            const customerList = document.getElementById("customerList");
-            const addNewBtn = document.getElementById("addNewBtn");
+            if (customerType !== "existing") return;
+            const name = document.getElementById("customerName").value.trim().toLowerCase();
             const panel = document.getElementById("existingInfo");
+            const c = customerMap[name];
+            if (!c) { panel.classList.add("hidden-field"); return; }
 
-            if (!input) {
-                dropdown.style.display = "none";
-                panel.classList.add("hidden-field");
-                return;
-            }
-
-            // Find matching customers
-            const matches = Object.values(customerMap).filter(c => c.name.toLowerCase().includes(inputLower));
-
-            // Populate dropdown with matching customers
-            customerList.innerHTML = matches.map(c =>
-                `<div style="padding:10px;border-bottom:1px solid #eee;cursor:pointer;" onclick="selectCustomer('${c.name}')">${c.name}</div>`
-            ).join("");
-
-            // Show "Add+" button only if no matches
-            if (matches.length === 0) {
-                addNewBtn.style.display = "block";
-                addNewBtn.textContent = "Add+";
-                addNewBtn.onclick = () => addNewCustomer(input);
-            } else {
-                addNewBtn.style.display = "none";
-            }
-
-            dropdown.style.display = "block";
-
-            // Show existing customer info if exact match found
-            const c = customerMap[inputLower];
-            if (c) {
-                const st = statusOf(c);
-                document.getElementById("eiName").textContent = c.name;
-                const badge = document.getElementById("eiStatus");
-                badge.textContent = st.label;
-                badge.className = "badge " + st.cls;
-                document.getElementById("eiContact").textContent = c.contact || "—";
-                document.getElementById("eiDesignation").textContent = c.designation || "—";
-                const loc = [c.area, c.emirate].filter(Boolean).join(", ");
-                document.getElementById("eiLocation").textContent = loc || "—";
-                document.getElementById("eiIndustry").textContent = c.industry || "—";
-                document.getElementById("eiLastVisit").textContent = c.lastVisit || "—";
-                document.getElementById("eiLastOrder").textContent = c.lastOrder || "Never";
-                panel.classList.remove("hidden-field");
-            } else {
-                panel.classList.add("hidden-field");
-            }
-        }
-
-        function selectCustomer(name) {
-            document.getElementById("customerName").value = name;
-            document.getElementById("customerDropdown").style.display = "none";
-            onCustomerInput();
-        }
-
-        function addNewCustomer(name) {
-            document.getElementById("customerName").value = name;
-            document.getElementById("customerDropdown").style.display = "none";
-            // Show new customer form fields
-            document.getElementById("newCustomerFields").classList.remove("hidden-field");
-            onCustomerInput();
+            const st = statusOf(c);
+            document.getElementById("eiName").textContent = c.name;
+            const badge = document.getElementById("eiStatus");
+            badge.textContent = st.label;
+            badge.className = "badge " + st.cls;
+            document.getElementById("eiContact").textContent = c.contact || "—";
+            document.getElementById("eiDesignation").textContent = c.designation || "—";
+            const loc = [c.area, c.emirate].filter(Boolean).join(", ");
+            document.getElementById("eiLocation").textContent = loc || "—";
+            document.getElementById("eiIndustry").textContent = c.industry || "—";
+            document.getElementById("eiLastVisit").textContent = c.lastVisit || "—";
+            document.getElementById("eiLastOrder").textContent = c.lastOrder || "Never";
+            panel.classList.remove("hidden-field");
         }
 
         // Handle checkbox-based visit reasons (can be both)
@@ -999,88 +963,11 @@
             document.getElementById("reasonOrder").checked = true;
             document.getElementById("reasonPayment").checked = true;
             document.getElementById("existingInfo").classList.add("hidden-field");
-            onReasonsChange();
-            onPaymentTypeChange();
             editingVisit = null;
             document.getElementById("deleteBtn").style.display = "none";
             document.getElementById("cancelBtn").style.display = "none";
-        }
-
-        function deleteVisit() {
-            if (!editingVisit) return;
-            const pin = prompt("Enter your PIN to confirm delete:");
-            if (!pin) return;
-            if (REPS[pin] !== currentRep) { alert("Invalid PIN"); return; }
-
-            if (confirm("Permanently delete this visit?")) {
-                deleteVisitFromDB();
-            }
-        }
-
-        async function deleteVisitFromDB() {
-            try {
-                showStatus("Deleting visit...", "loading");
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/visits?id=eq.${editingVisit.id}`, {
-                    method: "DELETE",
-                    headers: {
-                        "apikey": SUPABASE_ANON_KEY,
-                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
-                if (!res.ok) throw new Error("Failed to delete");
-                showStatus("✓ Visit deleted", "success");
-                resetForm();
-                await loadData();
-                setTimeout(() => { document.getElementById("formStatus").className = "status-msg"; }, 3000);
-            } catch (e) {
-                showStatus("Error: " + e.message, "error");
-            }
-        }
-
-        function cancelEdit() {
-            if (confirm("Discard changes?")) {
-                resetForm();
-            }
-        }
-
-        function editVisit(idx) {
-            const v = allVisits[idx];
-            editingVisit = v;
-
-            document.getElementById("customerName").value = v.customerName || "";
-            document.getElementById("area").value = v.area || "";
-            document.getElementById("contact").value = v.contact || "";
-            document.getElementById("emirate").value = v.emirate || "";
-            document.getElementById("industry").value = v.industry || "";
-            document.getElementById("designation").value = v.designation || "";
-            document.getElementById("nextAction").value = v.nextAction || "";
-            document.getElementById("note").value = v.note || "";
-
-            const hasOrder = v.visitReason?.includes("Order");
-            const hasPayment = v.visitReason?.includes("Payment");
-            document.getElementById("reasonOrder").checked = hasOrder;
-            document.getElementById("reasonPayment").checked = hasPayment;
-
-            if (hasOrder) {
-                document.getElementById("orderOutcome").value = v.outcome === "Order Placed" ? "Order Placed" : "";
-                document.getElementById("orderValue").value = v.orderValue || "";
-            }
-            if (hasPayment) {
-                document.getElementById("paymentOutcome").value = v.outcome === "Payment Collected" ? "Payment Collected" : "";
-                document.getElementById("paymentType").value = v.paymentType || "";
-                document.getElementById("paymentValue").value = v.paymentValue || "";
-                document.getElementById("chequeType").value = v.chequeType || "";
-                document.getElementById("paymentDate").value = v.paymentDate || "";
-            }
-
             onReasonsChange();
             onPaymentTypeChange();
-            onCustomerInput();
-
-            document.getElementById("deleteBtn").style.display = "block";
-            document.getElementById("cancelBtn").style.display = "block";
-
-            alert("Form populated. Scroll up to edit and save changes.");
         }
 
         function updateDashboard() {
@@ -1156,9 +1043,86 @@
                         <td>${v.visitReason || ""}</td>
                         <td><span class="badge ${outcomeBadge(v.outcome)}">${v.outcome || "—"}</span></td>
                         <td>${nf(amt)}</td>
-                        <td><button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="editVisit(${idx})">Edit</button></td>
+                        <td><button class="btn" style="padding: 6px 12px; font-size: 11px;" onclick="editVisit(${idx})">Edit</button></td>
                     </tr>`;
                 }).join("");
+        }
+
+        function editVisit(idx) {
+            const v = allVisits[idx];
+            editingVisit = v;
+
+            // Populate form with visit data
+            document.getElementById("customerName").value = v.customerName || "";
+            document.getElementById("area").value = v.area || "";
+            document.getElementById("contact").value = v.contact || "";
+            document.getElementById("emirate").value = v.emirate || "";
+            document.getElementById("industry").value = v.industry || "";
+            document.getElementById("designation").value = v.designation || "";
+            document.getElementById("nextAction").value = v.nextAction || "";
+            document.getElementById("note").value = v.note || "";
+
+            const hasOrder = v.visitReason?.includes("Order");
+            const hasPayment = v.visitReason?.includes("Payment");
+            document.getElementById("reasonOrder").checked = hasOrder;
+            document.getElementById("reasonPayment").checked = hasPayment;
+
+            if (hasOrder) {
+                document.getElementById("orderOutcome").value = v.outcome === "Order Placed" ? "Order Placed" : "";
+                document.getElementById("orderValue").value = v.orderValue || "";
+            }
+            if (hasPayment) {
+                document.getElementById("paymentOutcome").value = v.outcome === "Payment Collected" ? "Payment Collected" : "";
+                document.getElementById("paymentType").value = v.paymentType || "";
+                document.getElementById("paymentValue").value = v.paymentValue || "";
+            }
+
+            onReasonsChange();
+            onPaymentTypeChange();
+
+            // Show Delete and Cancel buttons
+            document.getElementById("deleteBtn").style.display = "block";
+            document.getElementById("cancelBtn").style.display = "block";
+
+            // Scroll to form
+            document.getElementById("visitform").scrollIntoView({ behavior: "smooth" });
+        }
+
+        function deleteVisit() {
+            if (!editingVisit) return;
+            const pin = prompt("Enter your PIN to confirm delete:");
+            if (!pin) return;
+            if (REPS[pin] !== currentRep) { alert("Invalid PIN"); return; }
+
+            if (confirm("Permanently delete this visit?")) {
+                deleteVisitFromDB();
+            }
+        }
+
+        async function deleteVisitFromDB() {
+            try {
+                showStatus("Deleting visit...", "loading");
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/visits?id=eq.${editingVisit.id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to delete");
+                showStatus("✓ Visit deleted", "success");
+                resetForm();
+                await loadData();
+                setTimeout(() => { document.getElementById("formStatus").className = "status-msg"; }, 3000);
+            } catch (e) {
+                showStatus("Error: " + e.message, "error");
+            }
+        }
+
+        function cancelEdit() {
+            if (confirm("Discard changes?")) {
+                resetForm();
+            }
         }
 
         function filterCustomers() {
