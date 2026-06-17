@@ -628,6 +628,24 @@
         </div>
     </div>
 
+    <!-- EDIT VISIT MODAL -->
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 25px; border-radius: 8px; max-width: 600px; width: 90%; margin: 20px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 20px;">Edit Visit</h3>
+                <button onclick="closeEditModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999;">&times;</button>
+            </div>
+            <div id="editModalContent" style="max-height: 70vh; overflow-y: auto; font-size: 13px;">
+                <!-- Form content will be inserted here -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn" style="flex: 1;" onclick="saveEditedVisit()">Save</button>
+                <button class="btn" style="flex: 1; background: #d32f2f;" onclick="deleteFromModal()">Delete</button>
+                <button class="btn" style="flex: 1; background: #999;" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = "https://mlzqbtafriocbsyzfagc.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1senFidGFmcmlvY2JzeXpmYWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODc4MzUsImV4cCI6MjA5NjU2MzgzNX0.ZwYm6qVav9TUtt4ruaDN4ozmrm3Cce2XIFUQcQ_duvc";
@@ -1052,40 +1070,124 @@
             const v = allVisits[idx];
             editingVisit = v;
 
-            // Populate form with visit data
-            document.getElementById("customerName").value = v.customerName || "";
-            document.getElementById("area").value = v.area || "";
-            document.getElementById("contact").value = v.contact || "";
-            document.getElementById("emirate").value = v.emirate || "";
-            document.getElementById("industry").value = v.industry || "";
-            document.getElementById("designation").value = v.designation || "";
-            document.getElementById("nextAction").value = v.nextAction || "";
-            document.getElementById("note").value = v.note || "";
+            // Build edit form in modal
+            const html = `
+                <div class="form-group">
+                    <label class="form-label">Customer</label>
+                    <input type="text" id="editCustomer" class="form-input" value="${v.customerName || ''}" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Visit Reason</label>
+                    <input type="text" id="editReason" class="form-input" value="${v.visitReason || ''}" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Outcome</label>
+                    <select id="editOutcome" class="form-select">
+                        <option value="">Select</option>
+                        <option value="Order Placed" ${v.outcome === 'Order Placed' ? 'selected' : ''}>Order Placed</option>
+                        <option value="Payment Collected" ${v.outcome === 'Payment Collected' ? 'selected' : ''}>Payment Collected</option>
+                        <option value="Not Available" ${v.outcome === 'Not Available' ? 'selected' : ''}>Not Available</option>
+                        <option value="Waiting" ${v.outcome === 'Waiting' ? 'selected' : ''}>Waiting</option>
+                        <option value="Interested" ${v.outcome === 'Interested' ? 'selected' : ''}>Interested</option>
+                        <option value="Not Interested" ${v.outcome === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                    </select>
+                </div>
+                ${v.outcome === 'Order Placed' ? `
+                <div class="form-group">
+                    <label class="form-label">Order Value (AED)</label>
+                    <input type="number" id="editOrderValue" class="form-input" value="${v.orderValue || 0}" min="0">
+                </div>
+                ` : ''}
+                ${v.outcome === 'Payment Collected' ? `
+                <div class="form-group">
+                    <label class="form-label">Payment Amount (AED)</label>
+                    <input type="number" id="editPaymentValue" class="form-input" value="${v.paymentValue || 0}" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payment Type</label>
+                    <select id="editPaymentType" class="form-select">
+                        <option value="">Select</option>
+                        <option value="Cash" ${v.paymentType === 'Cash' ? 'selected' : ''}>Cash</option>
+                        <option value="Cheque" ${v.paymentType === 'Cheque' ? 'selected' : ''}>Cheque</option>
+                        <option value="Transfer" ${v.paymentType === 'Transfer' ? 'selected' : ''}>Transfer</option>
+                    </select>
+                </div>
+                ` : ''}
+                <div class="form-group">
+                    <label class="form-label">Next Action</label>
+                    <select id="editNextAction" class="form-select">
+                        <option value="">Select</option>
+                        <option value="Tomorrow" ${v.nextAction === 'Tomorrow' ? 'selected' : ''}>Tomorrow</option>
+                        <option value="3 Days" ${v.nextAction === '3 Days' ? 'selected' : ''}>3 Days</option>
+                        <option value="7 Days" ${v.nextAction === '7 Days' ? 'selected' : ''}>7 Days</option>
+                        <option value="20 Days" ${v.nextAction === '20 Days' ? 'selected' : ''}>20 Days</option>
+                        <option value="30 Days" ${v.nextAction === '30 Days' ? 'selected' : ''}>30 Days</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Note</label>
+                    <textarea id="editNote" class="form-input" style="min-height: 80px;">${v.note || ''}</textarea>
+                </div>
+            `;
 
-            const hasOrder = v.visitReason?.includes("Order");
-            const hasPayment = v.visitReason?.includes("Payment");
-            document.getElementById("reasonOrder").checked = hasOrder;
-            document.getElementById("reasonPayment").checked = hasPayment;
+            document.getElementById("editModalContent").innerHTML = html;
+            document.getElementById("editModal").style.display = "flex";
+        }
 
-            if (hasOrder) {
-                document.getElementById("orderOutcome").value = v.outcome === "Order Placed" ? "Order Placed" : "";
-                document.getElementById("orderValue").value = v.orderValue || "";
+        function closeEditModal() {
+            document.getElementById("editModal").style.display = "none";
+            editingVisit = null;
+        }
+
+        function saveEditedVisit() {
+            if (!editingVisit) return;
+
+            // Update visit object
+            editingVisit.outcome = document.getElementById("editOutcome").value;
+            if (editingVisit.outcome === 'Order Placed') {
+                editingVisit.orderValue = parseInt(document.getElementById("editOrderValue").value) || 0;
             }
-            if (hasPayment) {
-                document.getElementById("paymentOutcome").value = v.outcome === "Payment Collected" ? "Payment Collected" : "";
-                document.getElementById("paymentType").value = v.paymentType || "";
-                document.getElementById("paymentValue").value = v.paymentValue || "";
+            if (editingVisit.outcome === 'Payment Collected') {
+                editingVisit.paymentValue = parseInt(document.getElementById("editPaymentValue").value) || 0;
+                editingVisit.paymentType = document.getElementById("editPaymentType").value;
             }
+            editingVisit.nextAction = document.getElementById("editNextAction").value;
+            editingVisit.note = document.getElementById("editNote").value;
 
-            onReasonsChange();
-            onPaymentTypeChange();
+            updateVisitInDB();
+        }
 
-            // Show Delete and Cancel buttons
-            document.getElementById("deleteBtn").style.display = "block";
-            document.getElementById("cancelBtn").style.display = "block";
+        async function updateVisitInDB() {
+            try {
+                showStatus("Updating visit...", "loading");
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/visits?id=eq.${editingVisit.id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify(editingVisit)
+                });
+                if (!res.ok) throw new Error("Failed to update");
+                showStatus("✓ Visit updated", "success");
+                closeEditModal();
+                await loadData();
+                setTimeout(() => { document.getElementById("formStatus").className = "status-msg"; }, 3000);
+            } catch (e) {
+                showStatus("Error: " + e.message, "error");
+            }
+        }
 
-            // Scroll to form
-            document.getElementById("visitform").scrollIntoView({ behavior: "smooth" });
+        function deleteFromModal() {
+            if (!editingVisit) return;
+            const pin = prompt("Enter your PIN to confirm delete:");
+            if (!pin) return;
+            if (REPS[pin] !== currentRep) { alert("Invalid PIN"); return; }
+
+            if (confirm("Permanently delete this visit?")) {
+                deleteVisitFromDB();
+            }
         }
 
         function deleteVisit() {
