@@ -1093,7 +1093,7 @@
                 <div id="editOrderSection" style="display: ${hasOrder ? 'block' : 'none'};">
                     <div class="form-group">
                         <label class="form-label">Order Outcome</label>
-                        <select id="editOrderOutcome" class="form-select">
+                        <select id="editOrderOutcome" class="form-select" onchange="updateOrderFields()">
                             <option value="">Select</option>
                             <option value="Order Placed" ${v.outcome === 'Order Placed' ? 'selected' : ''}>Order Placed</option>
                             <option value="Not Available" ${v.outcome === 'Not Available' && !v.visitReason?.includes('Payment') ? 'selected' : ''}>Not Available</option>
@@ -1183,6 +1183,11 @@
         function updateChequeField() {
             const type = document.getElementById("editPaymentType")?.value;
             document.getElementById("editChequeTypeGroup").style.display = type === "Cheque" ? "block" : "none";
+        }
+
+        function updateOrderFields() {
+            const outcome = document.getElementById("editOrderOutcome")?.value;
+            document.getElementById("editOrderValueGroup").style.display = outcome === "Order Placed" ? "block" : "none";
         }
 
         function closeEditModal() {
