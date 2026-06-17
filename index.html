@@ -1070,49 +1070,81 @@
             const v = allVisits[idx];
             editingVisit = v;
 
+            const hasOrder = v.visitReason?.includes("Order");
+            const hasPayment = v.visitReason?.includes("Payment");
+
             // Build edit form in modal
             const html = `
                 <div class="form-group">
                     <label class="form-label">Customer</label>
-                    <input type="text" id="editCustomer" class="form-input" value="${v.customerName || ''}" readonly style="background: #f5f5f5;">
+                    <input type="text" class="form-input" value="${v.customerName || ''}" readonly style="background: #f5f5f5;">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Visit Reason</label>
-                    <input type="text" id="editReason" class="form-input" value="${v.visitReason || ''}" readonly style="background: #f5f5f5;">
+                    <div style="display: flex; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="editOrderCheck" ${hasOrder ? 'checked' : ''} onchange="updateEditOutcomeOptions()"> Order Follow Up
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="editPaymentCheck" ${hasPayment ? 'checked' : ''} onchange="updateEditOutcomeOptions()"> Payment Follow Up
+                        </label>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Outcome</label>
-                    <select id="editOutcome" class="form-select">
-                        <option value="">Select</option>
-                        <option value="Order Placed" ${v.outcome === 'Order Placed' ? 'selected' : ''}>Order Placed</option>
-                        <option value="Payment Collected" ${v.outcome === 'Payment Collected' ? 'selected' : ''}>Payment Collected</option>
-                        <option value="Not Available" ${v.outcome === 'Not Available' ? 'selected' : ''}>Not Available</option>
-                        <option value="Waiting" ${v.outcome === 'Waiting' ? 'selected' : ''}>Waiting</option>
-                        <option value="Interested" ${v.outcome === 'Interested' ? 'selected' : ''}>Interested</option>
-                        <option value="Not Interested" ${v.outcome === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
-                    </select>
+                <div id="editOrderSection" style="display: ${hasOrder ? 'block' : 'none'};">
+                    <div class="form-group">
+                        <label class="form-label">Order Outcome</label>
+                        <select id="editOrderOutcome" class="form-select">
+                            <option value="">Select</option>
+                            <option value="Order Placed" ${v.outcome === 'Order Placed' ? 'selected' : ''}>Order Placed</option>
+                            <option value="Not Available" ${v.outcome === 'Not Available' && !v.visitReason?.includes('Payment') ? 'selected' : ''}>Not Available</option>
+                            <option value="Waiting" ${v.outcome === 'Waiting' && !v.visitReason?.includes('Payment') ? 'selected' : ''}>Waiting</option>
+                            <option value="Interested" ${v.outcome === 'Interested' && !v.visitReason?.includes('Payment') ? 'selected' : ''}>Interested</option>
+                            <option value="Not Interested" ${v.outcome === 'Not Interested' && !v.visitReason?.includes('Payment') ? 'selected' : ''}>Not Interested</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="editOrderValueGroup" style="display: ${v.outcome === 'Order Placed' ? 'block' : 'none'};">
+                        <label class="form-label">Order Value (AED)</label>
+                        <input type="number" id="editOrderValue" class="form-input" value="${v.orderValue || 0}" min="0">
+                    </div>
                 </div>
-                ${v.outcome === 'Order Placed' ? `
-                <div class="form-group">
-                    <label class="form-label">Order Value (AED)</label>
-                    <input type="number" id="editOrderValue" class="form-input" value="${v.orderValue || 0}" min="0">
+                <div id="editPaymentSection" style="display: ${hasPayment ? 'block' : 'none'};">
+                    <div class="form-group">
+                        <label class="form-label">Payment Outcome</label>
+                        <select id="editPaymentOutcome" class="form-select" onchange="updatePaymentFields()">
+                            <option value="">Select</option>
+                            <option value="Payment Collected" ${v.outcome === 'Payment Collected' ? 'selected' : ''}>Payment Collected</option>
+                            <option value="Payment Promised" ${v.outcome === 'Payment Promised' ? 'selected' : ''}>Payment Promised</option>
+                            <option value="Not Available" ${v.outcome === 'Not Available' && v.visitReason?.includes('Payment') ? 'selected' : ''}>Not Available</option>
+                        </select>
+                    </div>
+                    <div id="editPaymentCollectedGroup" style="display: ${v.outcome === 'Payment Collected' ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label class="form-label">Payment Amount (AED)</label>
+                            <input type="number" id="editPaymentValue" class="form-input" value="${v.paymentValue || 0}" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Type</label>
+                            <select id="editPaymentType" class="form-select" onchange="updateChequeField()">
+                                <option value="">Select</option>
+                                <option value="Cash" ${v.paymentType === 'Cash' ? 'selected' : ''}>Cash</option>
+                                <option value="Cheque" ${v.paymentType === 'Cheque' ? 'selected' : ''}>Cheque</option>
+                                <option value="Transfer" ${v.paymentType === 'Transfer' ? 'selected' : ''}>Transfer</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="editChequeTypeGroup" style="display: ${v.paymentType === 'Cheque' ? 'block' : 'none'};">
+                            <label class="form-label">Cheque Type</label>
+                            <select id="editChequeType" class="form-select">
+                                <option value="">Select</option>
+                                <option value="Current Dated" ${v.chequeType === 'Current Dated' ? 'selected' : ''}>Current Dated</option>
+                                <option value="Post Dated" ${v.chequeType === 'Post Dated' ? 'selected' : ''}>Post Dated</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="editPaymentDateGroup" style="display: ${v.outcome === 'Payment Promised' ? 'block' : 'none'};">
+                        <label class="form-label">Promised Payment Date</label>
+                        <input type="date" id="editPaymentDate" class="form-input" value="${v.paymentDate || ''}">
+                    </div>
                 </div>
-                ` : ''}
-                ${v.outcome === 'Payment Collected' ? `
-                <div class="form-group">
-                    <label class="form-label">Payment Amount (AED)</label>
-                    <input type="number" id="editPaymentValue" class="form-input" value="${v.paymentValue || 0}" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Payment Type</label>
-                    <select id="editPaymentType" class="form-select">
-                        <option value="">Select</option>
-                        <option value="Cash" ${v.paymentType === 'Cash' ? 'selected' : ''}>Cash</option>
-                        <option value="Cheque" ${v.paymentType === 'Cheque' ? 'selected' : ''}>Cheque</option>
-                        <option value="Transfer" ${v.paymentType === 'Transfer' ? 'selected' : ''}>Transfer</option>
-                    </select>
-                </div>
-                ` : ''}
                 <div class="form-group">
                     <label class="form-label">Next Action</label>
                     <select id="editNextAction" class="form-select">
@@ -1134,6 +1166,25 @@
             document.getElementById("editModal").style.display = "flex";
         }
 
+        function updateEditOutcomeOptions() {
+            const hasOrder = document.getElementById("editOrderCheck")?.checked;
+            const hasPayment = document.getElementById("editPaymentCheck")?.checked;
+
+            document.getElementById("editOrderSection").style.display = hasOrder ? "block" : "none";
+            document.getElementById("editPaymentSection").style.display = hasPayment ? "block" : "none";
+        }
+
+        function updatePaymentFields() {
+            const outcome = document.getElementById("editPaymentOutcome")?.value;
+            document.getElementById("editPaymentCollectedGroup").style.display = outcome === "Payment Collected" ? "block" : "none";
+            document.getElementById("editPaymentDateGroup").style.display = outcome === "Payment Promised" ? "block" : "none";
+        }
+
+        function updateChequeField() {
+            const type = document.getElementById("editPaymentType")?.value;
+            document.getElementById("editChequeTypeGroup").style.display = type === "Cheque" ? "block" : "none";
+        }
+
         function closeEditModal() {
             document.getElementById("editModal").style.display = "none";
             editingVisit = null;
@@ -1142,15 +1193,45 @@
         function saveEditedVisit() {
             if (!editingVisit) return;
 
-            // Update visit object
-            editingVisit.outcome = document.getElementById("editOutcome").value;
-            if (editingVisit.outcome === 'Order Placed') {
-                editingVisit.orderValue = parseInt(document.getElementById("editOrderValue").value) || 0;
+            const hasOrder = document.getElementById("editOrderCheck")?.checked;
+            const hasPayment = document.getElementById("editPaymentCheck")?.checked;
+
+            // Update visit reason
+            editingVisit.visitReason = [hasOrder ? "Order Follow Up" : "", hasPayment ? "Payment Follow Up" : ""].filter(Boolean).join(" + ");
+
+            // Update outcomes and values
+            if (hasOrder) {
+                editingVisit.outcome = document.getElementById("editOrderOutcome").value;
+                if (editingVisit.outcome === 'Order Placed') {
+                    editingVisit.orderValue = parseInt(document.getElementById("editOrderValue").value) || 0;
+                } else {
+                    editingVisit.orderValue = 0;
+                }
             }
-            if (editingVisit.outcome === 'Payment Collected') {
-                editingVisit.paymentValue = parseInt(document.getElementById("editPaymentValue").value) || 0;
-                editingVisit.paymentType = document.getElementById("editPaymentType").value;
+
+            if (hasPayment) {
+                const paymentOutcome = document.getElementById("editPaymentOutcome").value;
+                if (!hasOrder) {
+                    editingVisit.outcome = paymentOutcome;
+                }
+                if (paymentOutcome === 'Payment Collected') {
+                    editingVisit.paymentValue = parseInt(document.getElementById("editPaymentValue").value) || 0;
+                    editingVisit.paymentType = document.getElementById("editPaymentType").value;
+                    editingVisit.chequeType = document.getElementById("editChequeType")?.value || "";
+                    editingVisit.paymentDate = null;
+                } else if (paymentOutcome === 'Payment Promised') {
+                    editingVisit.paymentValue = 0;
+                    editingVisit.paymentDate = document.getElementById("editPaymentDate").value || null;
+                    editingVisit.paymentType = "";
+                    editingVisit.chequeType = "";
+                } else {
+                    editingVisit.paymentValue = 0;
+                    editingVisit.paymentType = "";
+                    editingVisit.chequeType = "";
+                    editingVisit.paymentDate = null;
+                }
             }
+
             editingVisit.nextAction = document.getElementById("editNextAction").value;
             editingVisit.note = document.getElementById("editNote").value;
 
